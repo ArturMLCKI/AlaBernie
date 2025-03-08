@@ -72,3 +72,70 @@ std::vector<Product> ProductParser::parseProducts(const std::string& html) {
     
     return products;
 }
+
+// ONNINEN START
+
+std::vector<Product> ProductParser::parseOnninen(const std::string& html) {
+    std::vector<Product> products;
+    
+    // Wyrażenie regularne do wyciągnięcia podstawowych informacji o produkcie
+    std::regex product_name_regex("<h1[^>]*class=\"[^\"]*foDHzh[^\"]*\"[^>]*>(.*?)</h1>");
+    std::regex product_price_regex("<span[^>]*class=\"[^\"]*main-price[^\"]*\"[^>]*>([0-9]+(?:,[0-9]{1,2})?) zł</span>");
+    std::regex product_desc_regex("<div[^>]*class=\"[^\"]*description[^\"]*\"[^>]*>(.*?)</div>");
+    std::regex product_img_regex("<img[^>]*src=\"([^\"]+)\"[^>]*>");
+    
+    // Wyciągnięcie danych
+    Product product;
+    
+    // Nazwa produktu
+    std::smatch name_match;
+    if (std::regex_search(html, name_match, product_name_regex)) {
+        std::string name = name_match.str(1);
+        // Usunięcie tagów HTML
+        name = std::regex_replace(name, std::regex("<[^>]*>"), "");
+        // Usunięcie nadmiarowych białych znaków
+        name = std::regex_replace(name, std::regex("\\s+"), " ");
+        name = std::regex_replace(name, std::regex("^\\s+|\\s+$"), "");
+        product.setName(name);
+    }
+    
+    // Cena produktu
+    std::smatch price_match;
+    if (std::regex_search(html, price_match, product_price_regex)) {
+        std::string price = price_match.str(1);
+        // Usunięcie tagów HTML
+        price = std::regex_replace(price, std::regex("<[^>]*>"), "");
+        // Usunięcie nadmiarowych białych znaków
+        price = std::regex_replace(price, std::regex("\\s+"), " ");
+        price = std::regex_replace(price, std::regex("^\\s+|\\s+$"), "");
+        product.setPrice(price);
+    }
+    
+    // Opis produktu
+    std::smatch desc_match;
+    if (std::regex_search(html, desc_match, product_desc_regex)) {
+        std::string description = desc_match.str(1);
+        // Usunięcie tagów HTML
+        description = std::regex_replace(description, std::regex("<[^>]*>"), "");
+        // Usunięcie nadmiarowych białych znaków
+        description = std::regex_replace(description, std::regex("\\s+"), " ");
+        description = std::regex_replace(description, std::regex("^\\s+|\\s+$"), "");
+        product.setDescription(description);
+    }
+    
+    // URL obrazka
+    std::smatch img_match;
+    if (std::regex_search(html, img_match, product_img_regex)) {
+        product.setImageUrl(img_match.str(1));
+    }
+    
+    // URL produktu jest przekazywany z zewnątrz
+    
+    if (!product.getName().empty() && !product.getPrice().empty()) {
+        products.push_back(product);
+    }
+    
+    return products;
+}
+
+// ONNINEN END

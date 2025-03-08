@@ -1,54 +1,27 @@
-// main.cpp
-#include <iostream>
-#include <string>
+#include "Database.h"
+#include "OnninenScraper.h"
 #include "WebScraper.h"
 #include "ProductParser.h"
-#include "Database.h"
+#include <iostream>
 
 int main() {
-    // Konfiguracja
-    std::string shop_url = "https://www.tadmar.pl/pompy-ciepla.html";
-    std::string shop_name = "tadmar";
-    std::string db_name = "product_prices.db";
-    
-    // Inicjalizacja komponentów
-    WebScraper scraper;
-    ProductParser parser(shop_name);
-    Database db(db_name);
-    
     // Inicjalizacja bazy danych
+    std::string db_name = "products.db";  // Nazwa pliku bazy danych
+    Database db(db_name);
+
+    // Próba inicjalizacji bazy danych
     if (!db.initialize()) {
-        std::cerr << "Błąd inicjalizacji bazy danych." << std::endl;
+        std::cerr << "Nie udało się zainicjować bazy danych!" << std::endl;
         return 1;
     }
-    
-    // Pobranie strony
-    std::string response;
-    if (!scraper.fetchWebpage(shop_url, response)) {
-        std::cerr << "Błąd pobierania strony." << std::endl;
+
+    // Rozpoczęcie procesu pobierania i zapisywania produktów
+    if (scrapeOnninen(db)) {
+        std::cout << "Zakończono proces pobierania produktów." << std::endl;
+    } else {
+        std::cerr << "Wystąpił problem podczas pobierania produktów." << std::endl;
         return 1;
     }
-    
-    // Parsowanie produktów
-    std::vector<Product> products = parser.parseProducts(response);
-    
-    std::cout << "Znaleziono " << products.size() << " produktów." << std::endl;
-    
-    // Zapisanie produktów do bazy danych
-    if (!db.saveProducts(products, shop_name)) {
-        std::cerr << "Błąd podczas zapisywania produktów do bazy danych." << std::endl;
-        return 1;
-    }
-    
-    std::cout << "Produkty zostały zapisane do bazy danych." << std::endl;
-    
-    // Opcjonalnie: wyświetl produkty
-    for (const auto& product : products) {
-        std::cout << "Nazwa: " << product.getName() << std::endl;
-        std::cout << "Cena: " << product.getPrice() << std::endl;
-        std::cout << "URL: " << product.getUrl() << std::endl;
-        std::cout << "------------------------" << std::endl;
-    }
-    
+
     return 0;
 }

@@ -1,5 +1,6 @@
 #include "WebScraper.h"
 #include <iostream>
+#include <regex>
 
 size_t WebScraper::WriteCallback(void* contents, size_t size, size_t nmemb, std:: string* userp) {
     userp ->append((char*)contents, size * nmemb);
@@ -55,4 +56,34 @@ bool WebScraper::fetchWebpage(const std::string& url, std::string& response) {
     
     return true;
 
+}
+
+std::vector<std::string> WebScraper::parseSitemapXML(const std::string& xml_content) {
+    std::vector<std::string> urls;
+    std::regex url_regex("<loc>(.*?)</loc>");
+
+    auto urls_begin = std::sregex_iterator(xml_content.begin(), xml_content.end(), url_regex);
+    auto urls_end = std::sregex_iterator();
+
+    for (std::sregex_iterator i = urls_begin; i != urls_end; ++i) {
+
+        std::smatch match = *i;
+        std::string url = match.str(1);
+        urls.push_back(url);
+    }
+
+    return urls;
+}
+
+bool WebScraper::downloadSitemapAndGetProductUrls(const std::string& sitemap_url, std::vector<std::string>& product_urls) {
+    std::string sitemap_content;
+    if (!fetchWebpage(sitemap_url, sitemap_content)){
+        std::cerr << "Nie udało się pobrać sitemap.xml z: " << sitemap_url << std::endl;
+        return false;
+    }
+
+    product_urls = parseSitemapXML(sitemap_content);
+    std::cout << "Pobrano " << product_urls.size() << " adresów URL z sitemap.xml" << std::endl;
+
+    return !product_urls.empty();
 }

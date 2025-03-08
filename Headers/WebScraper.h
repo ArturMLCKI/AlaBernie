@@ -20,4 +20,7 @@ public:
     void setTimeout(int seconds);
 
     bool fetchWebpage(const std::string& url, std::string& response);
+
+    std::vector<std::string> parseSitemapXML(const std::string& xml_content);
+    bool downloadSitemapAndGetProductUrls(const std::string& stiemap_url, std::vector<std::string>& product_urls);
 }; 

@@ -1,9 +1,10 @@
 CC = g++
-CFLAGS = -Wall -std=c++11 -IHeaders
+CFLAGS = -Wall -std=c++11 -IHeaders -ISites -g
 LDFLAGS = -lcurl -lsqlite3
 BUILD_DIR = build
 
-SOURCES = main.cpp Implementation/WebScraper.cpp Implementation/Product.cpp Implementation/ProductParser.cpp Implementation/Database.cpp
+# Dodajemy Sites/OnninenScraper.cpp do listy źródeł
+SOURCES = main.cpp Implementation/WebScraper.cpp Implementation/Product.cpp Implementation/ProductParser.cpp Implementation/Database.cpp Sites/OnninenScraper.cpp
 OBJECTS = $(patsubst %.cpp, $(BUILD_DIR)/%.o, $(SOURCES))
 EXECUTABLE = web_scraper
 

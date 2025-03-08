@@ -19,5 +19,7 @@ public:
     void configureForShop(const std::string& shop_name);
 
     std::vector<Product> parseProducts(const std::string& html);
+
+    std::vector<Product> parseOnninen(const std::string& hmtl);
 };
 
