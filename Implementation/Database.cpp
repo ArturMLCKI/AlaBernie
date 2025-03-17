@@ -20,6 +20,14 @@ bool Database::initialize() {
         return false;
     }
     
+    // Ustawienie kodowania UTF-8 dla bazy danych
+    char* err_msg = nullptr;
+    rc = sqlite3_exec(this->db, "PRAGMA encoding = 'UTF-8';", 0, 0, &err_msg);
+    if (rc != SQLITE_OK) {
+        std::cerr << "Błąd ustawienia kodowania: " << err_msg << std::endl;
+        sqlite3_free(err_msg);
+    }
+    
     // Tworzenie tabeli produktów
     const char* create_table_sql = 
         "CREATE TABLE IF NOT EXISTS products ("
@@ -33,14 +41,18 @@ bool Database::initialize() {
         "date TEXT NOT NULL"
         ");";
     
-    char* err_msg = nullptr;
-    rc = sqlite3_exec(this->db, create_table_sql, 0, 0, &err_msg);
+    return execute(create_table_sql);
+}
+
+bool Database::execute(const std::string& sql) {
+    char* errMsg = nullptr;
+    int rc = sqlite3_exec(this->db, sql.c_str(), nullptr, nullptr, &errMsg);
+
     if (rc != SQLITE_OK) {
-        std::cerr << "Błąd SQL: " << err_msg << std::endl;
-        sqlite3_free(err_msg);
+        std::cerr << "Błąd SQL: " << errMsg << std::endl;
+        sqlite3_free(errMsg);
         return false;
     }
-    
     return true;
 }
 
@@ -55,13 +67,12 @@ bool Database::saveProduct(const Product& product, const std::string& shop_name)
         return false;
     }
     
-    // Związanie danych z zapytaniem
-    sqlite3_bind_text(stmt, 1, product.getName().c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 2, product.getPrice().c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 3, product.getUrl().c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 4, product.getDescription().c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 5, product.getImageUrl().c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 6, shop_name.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 1, product.getName().c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 2, product.getPrice().c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 3, product.getUrl().c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 4, product.getDescription().c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 5, product.getImageUrl().c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 6, shop_name.c_str(), -1, SQLITE_TRANSIENT);
     
     rc = sqlite3_step(stmt);
     if (rc != SQLITE_DONE) {
@@ -75,7 +86,6 @@ bool Database::saveProduct(const Product& product, const std::string& shop_name)
 }
 
 bool Database::saveProducts(const std::vector<Product>& products, const std::string& shop_name) {
-    // Rozpoczęcie transakcji dla lepszej wydajności
     char* err_msg = nullptr;
     int rc = sqlite3_exec(this->db, "BEGIN TRANSACTION;", 0, 0, &err_msg);
     if (rc != SQLITE_OK) {
@@ -92,7 +102,6 @@ bool Database::saveProducts(const std::vector<Product>& products, const std::str
         }
     }
     
-    // Zakończenie transakcji
     if (success) {
         rc = sqlite3_exec(this->db, "COMMIT;", 0, 0, &err_msg);
     } else {
@@ -121,47 +130,8 @@ std::vector<Product> Database::getProductsByShop(const std::string& shop_name) {
         return products;
     }
     
-    sqlite3_bind_text(stmt, 1, shop_name.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 1, shop_name.c_str(), -1, SQLITE_TRANSIENT);
     
-    // Pętla po wynikach
-    while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
-        Product product;
-        product.setName(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0)));
-        product.setPrice(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1)));
-        
-        // Dodanie pozostałych właściwości, jeśli są dostępne
-        if (sqlite3_column_text(stmt, 2)) 
-            product.setUrl(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 2)));
-        
-        if (sqlite3_column_text(stmt, 3)) 
-            product.setDescription(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 3)));
-        
-        if (sqlite3_column_text(stmt, 4)) 
-            product.setImageUrl(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 4)));
-        
-        products.push_back(product);
-    }
-    
-    sqlite3_finalize(stmt);
-    return products;
-}
-
-std::vector<Product> Database::getProductsHistory(const std::string& product_name) {
-    std::vector<Product> products;
-    sqlite3_stmt* stmt;
-    
-    const char* sql = "SELECT name, price, url, description, image_url, shop, date FROM products "
-                      "WHERE name = ? ORDER BY date;";
-    
-    int rc = sqlite3_prepare_v2(this->db, sql, -1, &stmt, nullptr);
-    if (rc != SQLITE_OK) {
-        std::cerr << "Błąd przygotowania SQL: " << sqlite3_errmsg(this->db) << std::endl;
-        return products;
-    }
-    
-    sqlite3_bind_text(stmt, 1, product_name.c_str(), -1, SQLITE_STATIC);
-    
-    // Pętla po wynikach
     while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
         Product product;
         product.setName(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0)));
@@ -175,13 +145,6 @@ std::vector<Product> Database::getProductsHistory(const std::string& product_nam
         
         if (sqlite3_column_text(stmt, 4)) 
             product.setImageUrl(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 4)));
-        
-        // Pobieranie sklepu i daty
-        if (sqlite3_column_text(stmt, 5)) 
-            product.setShop(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 5)));
-        
-        if (sqlite3_column_text(stmt, 6)) 
-            product.setDate(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 6)));
         
         products.push_back(product);
     }

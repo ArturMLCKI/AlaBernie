@@ -6,7 +6,7 @@
 
 int main() {
     // Inicjalizacja bazy danych
-    std::string db_name = "products2.db";  // Nazwa pliku bazy danych
+    std::string db_name = "products.db";  // Nazwa pliku bazy danych
     Database db(db_name);
 
     // Próba inicjalizacji bazy danych

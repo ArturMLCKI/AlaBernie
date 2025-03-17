@@ -24,4 +24,8 @@ public:
     // Metody do odczytu
     std::vector<Product> getProductsByShop(const std::string& shop_name);
     std::vector<Product> getProductsHistory(const std::string& product_name);
+
+    // Metody pomocnicze
+    sqlite3* getDbHandle() { return db; }
+    bool execute(const std::string& sql);
 };

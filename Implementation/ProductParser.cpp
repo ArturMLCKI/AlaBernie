@@ -123,7 +123,7 @@ std::vector<Product> ProductParser::parseOnninen(const std::string& html) {
         product.setDescription(description);
     }
     
-    // URL obrazka
+    // URL obrazka 
     std::smatch img_match;
     if (std::regex_search(html, img_match, product_img_regex)) {
         product.setImageUrl(img_match.str(1));
